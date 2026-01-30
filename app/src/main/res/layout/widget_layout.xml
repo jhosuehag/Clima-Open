@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:padding="16dp">
+
+    <!-- Location Name -->
+    <TextView
+        android:id="@+id/widget_location_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Cargando..."
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true" />
+
+    <!-- Current Temperature -->
+    <TextView
+        android:id="@+id/widget_temperature"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="--°"
+        android:textColor="#FFFFFF"
+        android:textSize="42sp"
+        android:textStyle="bold"
+        android:layout_below="@id/widget_location_name"
+        android:layout_marginTop="4dp" />
+
+    <!-- Weather Icon -->
+    <ImageView
+        android:id="@+id/widget_icon"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_sunny"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:contentDescription="Icono del clima" />
+
+    <!-- Weather Description -->
+    <TextView
+        android:id="@+id/widget_description"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Actualizando..."
+        android:textColor="#CCCCCC"
+        android:textSize="12sp"
+        android:layout_below="@id/widget_temperature"
+        android:layout_alignStart="@id/widget_temperature"
+        android:layout_marginTop="4dp" />
+
+</RelativeLayout>
