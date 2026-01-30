@@ -14,6 +14,14 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 import com.jhosue.weather.extreme.domain.location.LocationTracker
+import com.jhosue.weather.extreme.presentation.widget.WidgetWeatherItem
+import com.google.gson.Gson
+import android.appwidget.AppWidgetManager
+import com.jhosue.weather.extreme.presentation.widget.WeatherWidget
+import com.jhosue.weather.extreme.R
+import android.content.Context
+import android.content.Intent
+
 
 @HiltViewModel
 class WeatherViewModel @Inject constructor(
@@ -59,6 +67,7 @@ class WeatherViewModel @Inject constructor(
                 _state.value = _state.value.copy(
                     weatherInfo = map
                 )
+                updateWidget()
             }
         }
     }
@@ -138,6 +147,7 @@ class WeatherViewModel @Inject constructor(
                                  currentLocationWeather = result.data,
                                  isLoading = false
                              )
+                             updateWidget()
                          }
                          is Resource.Error -> {
                              _state.value = _state.value.copy(
@@ -348,6 +358,89 @@ class WeatherViewModel @Inject constructor(
                      _state.value = _state.value.copy(isLoading = true)
                 }
             }
+        }
+    }
+
+    private fun updateWidget() {
+        viewModelScope.launch {
+            try {
+                // 1. Collect Data
+                val current = state.value.currentLocationWeather
+                val saved = state.value.weatherInfo.values.filterNotNull().sortedBy { it.sortOrder }
+                
+                val widgetItems = mutableListOf<WidgetWeatherItem>()
+                
+                // Add Current Location first if exists
+                if (current != null) {
+                    widgetItems.add(
+                        WidgetWeatherItem(
+                            locationName = "Ubicación Actual", // Force name or use current.locationName
+                            temperature = current.temperature,
+                            weatherCode = current.weatherCode,
+                            isDay = current.isDay,
+                            description = getWeatherDescription(current.weatherCode)
+                        )
+                    )
+                }
+                
+                // Add Saved Locations
+                saved.forEach { item ->
+                    // Prevent duplicate "Actual" if saved list has it (it shouldn't if filtered right, but safety check)
+                    if (item.locationName != "Ubicación Actual") {
+                         widgetItems.add(
+                            WidgetWeatherItem(
+                                locationName = item.locationName,
+                                temperature = item.temperature,
+                                weatherCode = item.weatherCode,
+                                isDay = item.isDay,
+                                description = getWeatherDescription(item.weatherCode)
+                            )
+                        )
+                    }
+                }
+
+                // 2. Serialize
+                val gson = Gson()
+                val json = gson.toJson(widgetItems)
+
+                // 3. Save to Prefs
+                val prefs = context.getSharedPreferences("weather_prefs", Context.MODE_PRIVATE)
+                prefs.edit().putString("all_locations_data", json).apply()
+
+                // 4. Notify Widget
+                val appWidgetManager = AppWidgetManager.getInstance(context)
+                val ids = appWidgetManager.getAppWidgetIds(
+                    android.content.ComponentName(context, WeatherWidget::class.java)
+                )
+                
+                // Notify list data changed
+                appWidgetManager.notifyAppWidgetViewDataChanged(ids, R.id.widget_list_view)
+                
+                // Trigger general update to refresh title/empty view if needed
+                // Valid only if we update normal views too, but focusing on list now.
+                // Sending broadcast or calling onUpdate manually might be needed for non-list views.
+                val intent = Intent(context, WeatherWidget::class.java).apply {
+                    action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+                }
+                context.sendBroadcast(intent)
+                
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun getWeatherDescription(code: Int): String {
+        return when(code) {
+             0 -> "Despejado"
+             1, 2, 3 -> "Nublado"
+             45, 48 -> "Niebla"
+             51, 53, 55 -> "Llovizna"
+             61, 63, 65 -> "Lluvia"
+             71, 73, 75 -> "Nieve"
+             95, 96, 99 -> "Tormenta"
+             else -> "Normal"
         }
     }
 }
